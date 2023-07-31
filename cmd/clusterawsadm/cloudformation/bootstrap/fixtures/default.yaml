@@ -64,6 +64,7 @@ Resources:
           - elasticloadbalancing:DetachLoadBalancerFromSubnets
           - elasticloadbalancing:DeregisterInstancesFromLoadBalancer
           - elasticloadbalancing:ModifyLoadBalancerAttributes
+          - elasticloadbalancing:ModifyTargetGroupAttributes
           - elasticloadbalancing:RegisterInstancesWithLoadBalancer
           - elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer
           - elasticloadbalancing:CreateListener
