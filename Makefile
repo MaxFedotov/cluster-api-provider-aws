@@ -92,7 +92,7 @@ REGISTRY ?= $(STAGING_REGISTRY)
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 PULL_BASE_REF ?= $(RELEASE_TAG) # PULL_BASE_REF will be provided by Prow
 RELEASE_ALIAS_TAG ?= $(PULL_BASE_REF)
-RELEASE_DIR := out
+RELEASE_DIR ?= out
 RELEASE_POLICIES := $(RELEASE_DIR)/AWSIAMManagedPolicyControllers.json $(RELEASE_DIR)/AWSIAMManagedPolicyControllersWithEKS.json $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderControlPlane.json $(RELEASE_DIR)/AWSIAMManagedPolicyCloudProviderNodes.json $(RELEASE_DIR)/AWSIAMManagedPolicyControllersWithS3.json
 BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD)
 USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only works on https://github.com/<username>/cluster-api-provider-aws.git style URLs
@@ -104,7 +104,7 @@ endif
 TOOLCHAIN_IMAGE := toolchain
 
 TAG ?= dev
-ARCH ?= $(shell go env GOARCH)
+ARCH ?= amd64
 ALL_ARCH ?= amd64 arm arm64 ppc64le s390x
 
 # main controller

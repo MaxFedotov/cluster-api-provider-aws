@@ -1,0 +1,58 @@
+---
+services:
+  - docker:23.0.6-dind
+
+stages:
+  - release-container
+  - generate-yaml
+  - upload-provider
+
+release-container:
+  image: artifactory.wgdp.io/kind-docker/docker:20.10.18
+  stage: release-container
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
+  tags:
+    - docker
+  script:
+    - docker login --username "${JFROG_API_USER}" --password "${JFROG_API_KEY}" "${JFROG_DOCKER_URI}"
+    - CORE_CONTROLLER_IMG=${JFROG_DOCKER_URI}/${KIND_DOCKER_REPO}/cluster-api-aws-controller TAG=${CI_COMMIT_TAG} make docker-build
+    - CORE_CONTROLLER_IMG=${JFROG_DOCKER_URI}/${KIND_DOCKER_REPO}/cluster-api-aws-controller TAG=${CI_COMMIT_TAG} make docker-push
+  only:
+    - tags
+
+generate-yaml:
+  image: artifactory.wgdp.io/kind-docker/goko:1.20
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
+  stage: generate-yaml
+  tags:
+    - docker
+  script:
+    - git config --global --add safe.directory "$(pwd)"
+    - export RELEASE_TAG=${CI_COMMIT_TAG}
+    - export ARCH=$(go env GOARCH)
+    - RELEASE_DIR=out/infrastructure-aws/${CI_COMMIT_TAG} CORE_CONTROLLER_IMG=${JFROG_DOCKER_URI}/${KIND_DOCKER_REPO}/cluster-api-aws-controller-${ARCH} CORE_NAMESPACE=system-capi make release-manifests
+  only:
+    - tags
+  artifacts:
+    paths:
+    - out/infrastructure-aws/${CI_COMMIT_TAG}
+
+upload-provider:
+  stage: upload-provider
+  image: artifactory.wgdp.io/kind-docker/curl:8.1.1
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_HOST: tcp://docker:2375
+  dependencies:
+    - generate-yaml
+  script:
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file out/infrastructure-aws/${CI_COMMIT_TAG}/infrastructure-components.yaml  "${CI_API_V4_URL}/projects/${CAPI_PROVIDERS_PROJECT_ID}/packages/generic/aws-provider/${CI_COMMIT_TAG}/infrastructure-components.yaml"'
+    - 'curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file out/infrastructure-aws/${CI_COMMIT_TAG}/metadata.yaml  "${CI_API_V4_URL}/projects/${CAPI_PROVIDERS_PROJECT_ID}/packages/generic/aws-provider/${CI_COMMIT_TAG}/metadata.yaml"'
+  tags:
+    - docker
+  only:
+    - tags
